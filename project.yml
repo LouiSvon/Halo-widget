@@ -19,6 +19,6 @@ targets:
         INFOPLIST_FILE: Halo/Info.plist
         CODE_SIGN_ENTITLEMENTS: Halo/Halo.entitlements
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
+        DEVELOPMENT_TEAM: ""  # ← set your Apple Developer Team ID
     dependencies:
       - sdk: IOBluetooth.framework

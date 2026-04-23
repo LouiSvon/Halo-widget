@@ -24,7 +24,7 @@ final class SpotifyService: NSObject, ObservableObject {
     @Published var durationMS: Int = 0
 
     // MARK: Privé
-    private let clientID    = "e81639755bc84993a5bc7aefc77689a2"   // ← remplacer avant build
+    private let clientID    = "YOUR_SPOTIFY_CLIENT_ID"   // ← remplacer avant build
     private let redirectURI = "halo://spotify-callback"
     private let scopes      = "user-read-playback-state user-modify-playback-state"
 
