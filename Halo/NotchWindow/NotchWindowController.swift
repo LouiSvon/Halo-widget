@@ -44,7 +44,7 @@ final class NotchWindowController: NSObject, ObservableObject {
     private var pillWidth: CGFloat { notchWidth + sideExtension }
 
     /// Hauteur du contenu étendu sous l'encoche
-    static let expandedContentHeight: CGFloat = 150
+    static let expandedContentHeight: CGFloat = 175
 
     // MARK: - Frames du panel
 

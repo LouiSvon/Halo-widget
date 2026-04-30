@@ -31,11 +31,21 @@ struct NotchIslandView: View {
         }
         .frame(width: showPill ? notch.notchWidth + 80 : notch.notchWidth)
         .background(
-            RoundedRectangle(cornerRadius: isExpanded ? 22 : notch.notchHeight / 2)
-                .fill(Color(hex: "#0A0A0A"))
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: isExpanded ? 22 : notch.notchHeight / 2,
+                bottomTrailingRadius: isExpanded ? 22 : notch.notchHeight / 2,
+                topTrailingRadius: 0
+            )
+            .fill(Color(hex: "#0A0A0A"))
         )
         .clipShape(
-            RoundedRectangle(cornerRadius: isExpanded ? 22 : notch.notchHeight / 2)
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: isExpanded ? 22 : notch.notchHeight / 2,
+                bottomTrailingRadius: isExpanded ? 22 : notch.notchHeight / 2,
+                topTrailingRadius: 0
+            )
         )
         .shadow(
             color: .black.opacity(isExpanded ? 0.5 : 0),
@@ -76,16 +86,16 @@ struct NotchIslandView: View {
 
             // Ligne 1 : album + track info + eq
             HStack(spacing: 10) {
-                albumImage(size: 48, radius: 8)
+                albumImage(size: 56, radius: 10)
                     .matchedGeometryEffect(id: "album", in: ns)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(spotify.currentTrack?.title ?? "")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Color(hex: "#F5F5F5"))
                         .lineLimit(1)
                     Text(spotify.currentTrack?.artist ?? "")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundColor(Color(hex: "#6B6B6B"))
                         .lineLimit(1)
                 }
