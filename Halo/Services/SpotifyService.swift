@@ -91,7 +91,10 @@ final class SpotifyService: NSObject, ObservableObject {
     // MARK: - Token refresh
 
     private func refreshAccessToken(then completion: @escaping () -> Void) {
-        guard let refresh = refreshToken else { return }
+        guard let refresh = refreshToken else {
+            DispatchQueue.main.async { self.resetAuth() }
+            return
+        }
 
         var req = URLRequest(url: URL(string: "https://accounts.spotify.com/api/token")!)
         req.httpMethod = "POST"
@@ -102,13 +105,38 @@ final class SpotifyService: NSObject, ObservableObject {
             "client_id=\(clientID)"
         ].joined(separator: "&").data(using: .utf8)
 
-        URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
-            guard let data, let resp = try? JSONDecoder().decode(TokenResponse.self, from: data) else { return }
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            guard let self else { return }
+            // Spotify renvoie 400/401 quand le refresh token est invalide
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                DispatchQueue.main.async { self.resetAuth() }
+                return
+            }
+            guard let data,
+                  let resp = try? JSONDecoder().decode(TokenResponse.self, from: data)
+            else {
+                DispatchQueue.main.async { self.resetAuth() }
+                return
+            }
             DispatchQueue.main.async {
-                self?.storeTokens(resp)
+                self.storeTokens(resp)
                 completion()
             }
         }.resume()
+    }
+
+    func resetAuth() {
+        stopPolling()
+        accessToken  = nil
+        refreshToken = nil
+        tokenExpiry  = nil
+        currentTrack = nil
+        albumArtwork = nil
+        isPlaying    = false
+        isAuthenticated = false
+        KeychainHelper.delete(key: "halo.access_token")
+        KeychainHelper.delete(key: "halo.refresh_token")
+        KeychainHelper.delete(key: "halo.token_expiry")
     }
 
     // MARK: - Polling
