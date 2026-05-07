@@ -1,6 +1,7 @@
 import Foundation
 import CryptoKit
 import AppKit
+import Network
 
 // MARK: - Models publics
 
@@ -24,8 +25,8 @@ final class SpotifyService: NSObject, ObservableObject {
     @Published var durationMS: Int = 0
 
     // MARK: Privé
-    private let clientID    = "e81639755bc84993a5bc7aefc77689a2"   // ← remplacer avant build
-    private let redirectURI = "halo://spotify-callback"
+    private let clientID    = "0124d5c10843498fa67644a1f798d8a1"
+    private let redirectURI = "http://127.0.0.1:8080/callback"
     private let scopes      = "user-read-playback-state user-modify-playback-state"
 
     private var accessToken: String?
@@ -34,7 +35,8 @@ final class SpotifyService: NSObject, ObservableObject {
     private var codeVerifier: String?
     private var pollingTimer: Timer?
     private var progressTimer: Timer?
-    private var lastArtURL: String?   // évite de re-télécharger la même pochette
+    private var lastArtURL: String?
+    private var callbackListener: NWListener?
 
     private override init() {
         super.init()
@@ -47,6 +49,8 @@ final class SpotifyService: NSObject, ObservableObject {
         let verifier   = makeCodeVerifier()
         codeVerifier   = verifier
         let challenge  = makeCodeChallenge(from: verifier)
+
+        startCallbackServer()
 
         var comps = URLComponents(string: "https://accounts.spotify.com/authorize")!
         comps.queryItems = [
@@ -61,13 +65,47 @@ final class SpotifyService: NSObject, ObservableObject {
         NSWorkspace.shared.open(url)
     }
 
-    func handleCallback(url: URL) {
-        guard
-            let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
-            let code  = comps.queryItems?.first(where: { $0.name == "code" })?.value,
-            let verifier = codeVerifier
-        else { return }
-        exchangeCode(code, verifier: verifier)
+    // MARK: - Serveur HTTP local pour le callback OAuth
+
+    private func startCallbackServer() {
+        callbackListener?.cancel()
+        guard let listener = try? NWListener(using: .tcp, on: 8080) else { return }
+        callbackListener = listener
+
+        listener.newConnectionHandler = { [weak self] connection in
+            connection.start(queue: .global(qos: .utility))
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, _, _ in
+                guard let self,
+                      let data,
+                      let request = String(data: data, encoding: .utf8),
+                      let firstLine = request.components(separatedBy: "\r\n").first,
+                      let path = firstLine.components(separatedBy: " ").dropFirst().first,
+                      let url = URL(string: "http://127.0.0.1:8080\(path)"),
+                      let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                          .queryItems?.first(where: { $0.name == "code" })?.value,
+                      let verifier = self.codeVerifier
+                else {
+                    connection.cancel()
+                    return
+                }
+
+                let html = "<html><body style='background:#000;color:#fff;font-family:sans-serif;text-align:center;padding-top:80px'><h2>Halo connecté ✓</h2><p>Tu peux fermer cet onglet.</p></body></html>"
+                let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n\(html)"
+                connection.send(content: response.data(using: .utf8), completion: .idempotent)
+                connection.cancel()
+
+                DispatchQueue.main.async {
+                    self.stopCallbackServer()
+                    self.exchangeCode(code, verifier: verifier)
+                }
+            }
+        }
+        listener.start(queue: .global(qos: .utility))
+    }
+
+    private func stopCallbackServer() {
+        callbackListener?.cancel()
+        callbackListener = nil
     }
 
     private func exchangeCode(_ code: String, verifier: String) {
@@ -82,9 +120,14 @@ final class SpotifyService: NSObject, ObservableObject {
             "code_verifier=\(verifier)"
         ].joined(separator: "&").data(using: .utf8)
 
-        URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            guard let self else { return }
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                DispatchQueue.main.async { self.resetAuth() }
+                return
+            }
             guard let data, let resp = try? JSONDecoder().decode(TokenResponse.self, from: data) else { return }
-            DispatchQueue.main.async { self?.storeTokens(resp) }
+            DispatchQueue.main.async { self.storeTokens(resp) }
         }.resume()
     }
 
@@ -180,19 +223,23 @@ final class SpotifyService: NSObject, ObservableObject {
                     return
                 }
                 guard let resp = try? JSONDecoder().decode(NowPlayingResponse.self, from: data) else { return }
+                guard let item = resp.item else {
+                    // Pub ou podcast : item null, on efface la piste
+                    DispatchQueue.main.async { self.currentTrack = nil }
+                    return
+                }
                 let track = SpotifyTrack(
-                    title:       resp.item.name,
-                    artist:      resp.item.artists.map(\.name).joined(separator: ", "),
-                    albumArtURL: resp.item.album.images.first?.url
+                    title:       item.name,
+                    artist:      item.artists.map(\.name).joined(separator: ", "),
+                    albumArtURL: item.album.images.first?.url
                 )
                 DispatchQueue.main.async {
                     self.currentTrack = track
                     self.isPlaying    = resp.is_playing
                     self.progressMS   = resp.progress_ms ?? 0
-                    self.durationMS   = resp.item.duration_ms
+                    self.durationMS   = item.duration_ms
                 }
-                // Recharge la pochette seulement si l'URL a changé
-                if let artURL = resp.item.album.images.first?.url, artURL != self.lastArtURL {
+                if let artURL = item.album.images.first?.url, artURL != self.lastArtURL {
                     self.lastArtURL = artURL
                     self.fetchArtwork(urlString: artURL)
                 }
@@ -309,7 +356,7 @@ private struct TokenResponse: Decodable {
 private struct NowPlayingResponse: Decodable {
     let is_playing: Bool
     let progress_ms: Int?
-    let item: Item
+    let item: Item?   // null pendant les pubs ou podcasts
 
     struct Item: Decodable {
         let name: String

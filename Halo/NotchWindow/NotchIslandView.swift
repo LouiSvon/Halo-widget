@@ -5,9 +5,8 @@ struct NotchIslandView: View {
     @ObservedObject private var spotify   = SpotifyService.shared
     @ObservedObject private var bluetooth = BluetoothService.shared
 
-    @Namespace private var ns   // matchedGeometryEffect pour les transitions
+    @Namespace private var ns
 
-    private var showPill: Bool  { notch.state != .idle }
     private var isExpanded: Bool { notch.state == .expanded }
 
     var body: some View {
@@ -29,7 +28,7 @@ struct NotchIslandView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .frame(width: showPill ? notch.notchWidth + 80 : notch.notchWidth)
+        .frame(width: pillWidth)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 0,
@@ -54,27 +53,46 @@ struct NotchIslandView: View {
         )
     }
 
-    // MARK: - Barre collapsed
+    private var pillWidth: CGFloat {
+        switch notch.state {
+        case .idle:     return notch.notchWidth
+        case .collapsed, .expanded: return notch.notchWidth + 80
+        }
+    }
+
+    // MARK: - Barre collapsed / idle
 
     private var collapsedBar: some View {
         HStack(spacing: 0) {
-            // Album art : visible seulement en collapsed (matchedGeo assure la transition)
-            if showPill && !isExpanded {
-                albumImage(size: 26, radius: 6)
-                    .matchedGeometryEffect(id: "album", in: ns)
-                    .padding(.leading, 10)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
-            }
+            switch notch.state {
+            case .idle:
+                // Petit point vert centré indiquant que Halo tourne
+                Spacer()
+                Circle()
+                    .fill(Color(hex: "#1DB954"))
+                    .frame(width: 6, height: 6)
+                    .transition(.scale.combined(with: .opacity))
+                Spacer()
 
-            Spacer()
+            case .collapsed, .expanded:
+                // Album art à gauche
+                if !isExpanded {
+                    albumImage(size: 26, radius: 6)
+                        .matchedGeometryEffect(id: "album", in: ns)
+                        .padding(.leading, 10)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                }
 
-            // Equalizer : visible seulement en collapsed
-            if showPill && !isExpanded {
-                EqualizerBars(isActive: spotify.isPlaying)
-                    .matchedGeometryEffect(id: "eq", in: ns)
-                    .frame(width: 20, height: 16)
-                    .padding(.trailing, 10)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                Spacer()
+
+                // Equalizer à droite
+                if !isExpanded {
+                    EqualizerBars(isActive: spotify.isPlaying)
+                        .matchedGeometryEffect(id: "eq", in: ns)
+                        .frame(width: 20, height: 16)
+                        .padding(.trailing, 10)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                }
             }
         }
     }
@@ -83,42 +101,68 @@ struct NotchIslandView: View {
 
     private var expandedContent: some View {
         VStack(spacing: 10) {
+            if spotify.isAuthenticated {
+                if let _ = spotify.currentTrack {
+                    // Ligne 1 : album + track info + eq
+                    HStack(spacing: 10) {
+                        albumImage(size: 56, radius: 10)
+                            .matchedGeometryEffect(id: "album", in: ns)
 
-            // Ligne 1 : album + track info + eq
-            HStack(spacing: 10) {
-                albumImage(size: 56, radius: 10)
-                    .matchedGeometryEffect(id: "album", in: ns)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(spotify.currentTrack?.title ?? "")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color(hex: "#F5F5F5"))
+                                .lineLimit(1)
+                            Text(spotify.currentTrack?.artist ?? "")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "#6B6B6B"))
+                                .lineLimit(1)
+                        }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(spotify.currentTrack?.title ?? "")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(hex: "#F5F5F5"))
-                        .lineLimit(1)
-                    Text(spotify.currentTrack?.artist ?? "")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#6B6B6B"))
-                        .lineLimit(1)
+                        Spacer(minLength: 2)
+
+                        EqualizerBars(isActive: spotify.isPlaying)
+                            .matchedGeometryEffect(id: "eq", in: ns)
+                            .frame(width: 18, height: 14)
+                    }
+
+                    progressBar
+                    controlsRow
+                } else {
+                    // Authentifié mais rien ne joue
+                    VStack(spacing: 6) {
+                        Image(systemName: "music.note")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color(hex: "#6B6B6B"))
+                        Text("Aucune lecture en cours")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#6B6B6B"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
-
-                Spacer(minLength: 2)
-
-                EqualizerBars(isActive: spotify.isPlaying)
-                    .matchedGeometryEffect(id: "eq", in: ns)
-                    .frame(width: 18, height: 14)
+            } else {
+                // Non authentifié → bouton connect
+                VStack(spacing: 10) {
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 22))
+                        .foregroundColor(Color(hex: "#1DB954"))
+                    Text("Connecter Spotify")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "#F5F5F5"))
+                    Button("Se connecter") { spotify.startAuth() }
+                        .buttonStyle(SpotifyPillButtonStyle())
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
             }
-
-            // Ligne 2 : progression
-            progressBar
-
-            // Ligne 3 : contrôles
-            controlsRow
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
         .padding(.bottom, 14)
     }
 
-    // MARK: - Album art (unique, taillé selon le contexte)
+    // MARK: - Album art
 
     @ViewBuilder
     private func albumImage(size: CGFloat, radius: CGFloat) -> some View {
@@ -167,26 +211,18 @@ struct NotchIslandView: View {
     private var controlsRow: some View {
         HStack(spacing: 0) {
             Spacer()
-
             IslandButton(icon: "backward.fill", size: 13) { spotify.previous() }
-
             Spacer()
-
             IslandButton(
                 icon: spotify.isPlaying ? "pause.fill" : "play.fill",
                 size: 17
             ) { spotify.togglePlayPause() }
-
             Spacer()
-
             IslandButton(icon: "forward.fill", size: 13) { spotify.next() }
-
             Spacer()
-
             Image(systemName: bluetooth.connectedDevices.isEmpty ? "airplayaudio" : "headphones")
                 .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#6B6B6B"))
-
             Spacer()
         }
     }
@@ -208,7 +244,7 @@ struct NotchIslandView: View {
     }
 }
 
-// MARK: - Bouton avec feedback visuel
+// MARK: - Bouton île
 
 private struct IslandButton: View {
     let icon: String
@@ -261,7 +297,7 @@ struct EqualizerBars: View {
     private func barHeight(index: Int) -> CGFloat {
         guard isActive else { return 2 }
         let t = phase * (1.0 + Double(index) * 0.3) + Double(index) * 2.1
-        let h = (sin(t * 1.7) + 1) / 2 * 0.7 + 0.3   // 0.3 … 1.0
+        let h = (sin(t * 1.7) + 1) / 2 * 0.7 + 0.3
         return CGFloat(h) * 14
     }
 }

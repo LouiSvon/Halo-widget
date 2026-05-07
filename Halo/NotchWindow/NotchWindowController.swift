@@ -44,7 +44,7 @@ final class NotchWindowController: NSObject, ObservableObject {
     private var pillWidth: CGFloat { notchWidth + sideExtension }
 
     /// Hauteur du contenu étendu sous l'encoche
-    static let expandedContentHeight: CGFloat = 175
+    static let expandedContentHeight: CGFloat = 220
 
     // MARK: - Frames du panel
 
@@ -135,10 +135,13 @@ final class NotchWindowController: NSObject, ObservableObject {
 
         switch state {
         case .idle:
-            break
+            // Hover sur le notch en idle → expand pour montrer auth/status
+            let zone = collapsedFrame.insetBy(dx: -12, dy: -4)
+            if zone.contains(mouse) {
+                setState(.expanded)
+            }
 
         case .collapsed:
-            // Hover sur la pill → expand
             let zone = collapsedFrame.insetBy(dx: -12, dy: -4)
             if zone.contains(mouse) {
                 collapseWork?.cancel()
@@ -152,9 +155,13 @@ final class NotchWindowController: NSObject, ObservableObject {
                 collapseWork?.cancel()
                 collapseWork = nil
             } else if collapseWork == nil {
-                // Souris sortie → collapse après 250 ms
                 let work = DispatchWorkItem { [weak self] in
-                    self?.setState(.collapsed)
+                    // Retour à idle si pas de musique, sinon collapsed
+                    if SpotifyService.shared.currentTrack != nil {
+                        self?.setState(.collapsed)
+                    } else {
+                        self?.setState(.idle)
+                    }
                     self?.collapseWork = nil
                 }
                 collapseWork = work
