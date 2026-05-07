@@ -28,3 +28,6 @@ build/
 # Swift Package Manager
 .build/
 Package.resolved
+
+# Secrets (ne jamais commiter)
+Halo/Helpers/Secrets.swift

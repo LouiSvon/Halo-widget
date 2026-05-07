@@ -13,6 +13,7 @@
 		49D70130EF3F5CF7464391FF /* NotchWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A57E9D0009B2A9A9D81FBE /* NotchWindowController.swift */; };
 		57ED540E992C1A9F824273D8 /* BluetoothView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A127739D5F003590F011DD8C /* BluetoothView.swift */; };
 		6D976D56C0638AB05201B0E8 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15AE63554CAC9F01A258C90A /* KeychainHelper.swift */; };
+		AA100001000000000000BBBB /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002000000000000BBBB /* Secrets.swift */; };
 		7094C11F61A6652A35A1D61D /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDC7F91E821066B3DA56C5C /* Color+Hex.swift */; };
 		831D8C2A674AC7507CAC4DBD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F931C332A1D08EBDD7AECC5C /* AppDelegate.swift */; };
 		99A2204CF41237F941F36B09 /* HaloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C8E2EA6ADDE8F4BBFAE467 /* HaloApp.swift */; };
@@ -26,6 +27,8 @@
 		02A57E9D0009B2A9A9D81FBE /* NotchWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindowController.swift; sourceTree = "<group>"; };
 		13C982DF4317093B0BC7ED45 /* SpotifyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyService.swift; sourceTree = "<group>"; };
 		15AE63554CAC9F01A258C90A /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		AA100002000000000000BBBB /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		AA100004000000000000BBBB /* Secrets.example.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.example.swift; sourceTree = "<group>"; };
 		296CAF289E8483E5E756DDC6 /* NotchIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchIslandView.swift; sourceTree = "<group>"; };
 		47EBE4CEA819B53F9B628CAB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5540FBFD83AC84793ABD9E04 /* SpotifyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyView.swift; sourceTree = "<group>"; };
@@ -77,6 +80,8 @@
 			isa = PBXGroup;
 			children = (
 				15AE63554CAC9F01A258C90A /* KeychainHelper.swift */,
+				AA100002000000000000BBBB /* Secrets.swift */,
+				AA100004000000000000BBBB /* Secrets.example.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -212,6 +217,7 @@
 				C6F6646D973B88FF05C4A60A /* ContentView.swift in Sources */,
 				99A2204CF41237F941F36B09 /* HaloApp.swift in Sources */,
 				6D976D56C0638AB05201B0E8 /* KeychainHelper.swift in Sources */,
+				AA100001000000000000BBBB /* Secrets.swift in Sources */,
 				03AACE0187EF0554BED99A1D /* NotchIslandView.swift in Sources */,
 				49D70130EF3F5CF7464391FF /* NotchWindowController.swift in Sources */,
 				D42A7DC823D3580C754EB01A /* SpotifyService.swift in Sources */,

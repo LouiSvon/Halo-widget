@@ -25,7 +25,7 @@ final class SpotifyService: NSObject, ObservableObject {
     @Published var durationMS: Int = 0
 
     // MARK: Privé
-    private let clientID    = "0124d5c10843498fa67644a1f798d8a1"
+    private let clientID    = Secrets.spotifyClientID
     private let redirectURI = "http://127.0.0.1:8080/callback"
     private let scopes      = "user-read-playback-state user-modify-playback-state"
 
